@@ -154,8 +154,14 @@ fn render(
     }
 }
 
+fn calculate_orbit_position(time: f32, orbit_radius: f32, angular_velocity: f32) -> Vec3 {
+    let x = orbit_radius * (time * angular_velocity).cos();
+    let z = orbit_radius * (time * angular_velocity).sin();
+    Vec3::new(x, 0.0, z)
+}
+
+
 fn main() {
-    // Configuración de la ventana y framebuffer
     let window_width = 800;
     let window_height = 600;
     let framebuffer_width = 800;
@@ -173,7 +179,6 @@ fn main() {
     window.set_position(500, 500);
     framebuffer.set_background_color(0x333355);
 
-    // Parámetros de la cámara
     let mut camera = Camera::new(
         Vec3::new(0.0, 0.0, 10.0),
         Vec3::new(0.0, 0.0, 0.0),
@@ -184,36 +189,42 @@ fn main() {
     let vertex_arrays = obj.get_vertex_array();
     let mut time = 0;
 
-    // Definimos shaders y posiciones de los objetos usando Box para funciones
-    let solar_objects: Vec<(Box<dyn Fn(&Fragment, &Uniforms) -> Color>, Vec3, f32)> = vec![
-        (Box::new(sol_shader), Vec3::new(0.0, 0.0, 0.0), 1.5),  // Sol en el centro
-        (Box::new(tatooine_shader), Vec3::new(3.0, 0.0, 0.0), 0.5),  // Planeta 1
-        (Box::new(hoth_shader), Vec3::new(-5.0, 0.0, 0.0), 0.4),    // Planeta 2
-        (Box::new(kamino_shader), Vec3::new(0.0, 4.0, 0.0), 0.6), // Planeta 3
-        (Box::new(death_star_shader), Vec3::new(0.0, -4.0, 0.0), 0.7), // Planeta 4
-
-        // Agrega más planetas aquí si es necesario
+    let solar_objects: Vec<(Box<dyn Fn(&Fragment, &Uniforms) -> Color>, Vec3, f32, f32)> = vec![
+        (Box::new(sol_shader), Vec3::new(0.0, 0.0, 0.0), 1.5, 0.0),  
+        (Box::new(tatooine_shader), Vec3::new(3.0, 0.0, 0.0), 0.5, 0.01),  
+        (Box::new(hoth_shader), Vec3::new(5.0, 0.0, 0.0), 0.4, 0.012),   
+        (Box::new(kamino_shader), Vec3::new(0.0, 6.0, 0.0), 0.6, 0.014), 
+        (Box::new(death_star_shader), Vec3::new(0.0, -4.0, 0.0), 0.7, 0.016), 
     ];
+    
 
     while window.is_open() {
         if window.is_key_down(Key::Escape) {
             break;
         }
-
+    
         handle_input(&window, &mut camera);
         framebuffer.clear();
         time += 1;
-
+    
         // Matrices de vista y proyección
         let view_matrix = create_view_matrix(camera.eye, camera.center, camera.up);
         let projection_matrix = create_perspective_matrix(window_width as f32, window_height as f32);
         let viewport_matrix = create_viewport_matrix(framebuffer_width as f32, framebuffer_height as f32);
-
-        // Renderizamos cada objeto en la lista de solar_objects
-        for (shader_fn, translation, scale) in &solar_objects {
-            let rotation = Vec3::new(0.0, time as f32 * 0.01, 0.0);  // Rotación simple
-            let model_matrix = create_model_matrix(*translation, *scale, rotation);
-
+    
+        // Renderizamos cada objeto en la lista de solar_objects con órbitas
+        for (shader_fn, initial_translation, scale, orbital_speed) in &solar_objects {
+            // Calcular la posición orbital usando la velocidad orbital única
+            let angle = time as f32 * orbital_speed;  // Cada planeta tiene una velocidad única
+            let translation = Vec3::new(
+                initial_translation.x * angle.cos() - initial_translation.y * angle.sin(),
+                initial_translation.x * angle.sin() + initial_translation.y * angle.cos(),
+                initial_translation.z,
+            );
+        
+            let rotation = Vec3::new(0.0, time as f32 * 0.01, 0.0);  // Rotación simple en el eje Y
+            let model_matrix = create_model_matrix(translation, *scale, rotation);
+        
             let uniforms = Uniforms { 
                 model_matrix, 
                 view_matrix: view_matrix.clone(), 
@@ -222,15 +233,16 @@ fn main() {
                 time,
                 noise: create_noise(),
             };
-
+        
             render(&mut framebuffer, &uniforms, &vertex_arrays, shader_fn);
         }
-
+        
+    
         window.update_with_buffer(&framebuffer.buffer, framebuffer_width, framebuffer_height).unwrap();
         std::thread::sleep(frame_delay);
     }
+    
 }
-
 
 
 fn handle_input(window: &Window, camera: &mut Camera) {
