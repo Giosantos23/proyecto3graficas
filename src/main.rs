@@ -17,14 +17,12 @@ use vertex::Vertex;
 use obj::Obj;
 use camera::Camera;
 use triangle::triangle;
-use shaders::{vertex_shader, fragment_shader};
-use fastnoise_lite::{FastNoiseLite, NoiseType, FractalType};
+use shaders::{vertex_shader};
+use fastnoise_lite::{FastNoiseLite, NoiseType};
 use crate::shaders::tatooine_shader;
-use crate::shaders::gaseoso_shader;
 use crate::shaders::kamino_shader;
 use crate::shaders::sol_shader;
 use crate::shaders::hoth_shader;
-use crate::shaders::kashyyyk_shader;
 use crate::shaders::death_star_shader;
 use crate::fragment::Fragment;
 use crate::color::Color;
@@ -160,7 +158,6 @@ fn calculate_orbit_position(time: f32, orbit_radius: f32, angular_velocity: f32)
     Vec3::new(x, 0.0, z)
 }
 
-
 fn main() {
     let window_width = 800;
     let window_height = 600;
@@ -170,14 +167,13 @@ fn main() {
 
     let mut framebuffer = Framebuffer::new(framebuffer_width, framebuffer_height);
     let mut window = Window::new(
-        "Sistema Solar Simulado",
+        "Proyecto 3",
         window_width,
         window_height,
         WindowOptions::default(),
     ).unwrap();
 
     window.set_position(500, 500);
-    framebuffer.set_background_color(0x333355);
 
     let mut camera = Camera::new(
         Vec3::new(0.0, 0.0, 10.0),
@@ -196,33 +192,36 @@ fn main() {
         (Box::new(kamino_shader), Vec3::new(0.0, 6.0, 0.0), 0.6, 0.014), 
         (Box::new(death_star_shader), Vec3::new(0.0, -4.0, 0.0), 0.7, 0.016), 
     ];
-    
 
-    while window.is_open() {
-        if window.is_key_down(Key::Escape) {
-            break;
+    let mut current_planet_index = 0; 
+
+    while window.is_open() && !window.is_key_down(Key::Escape) {
+        if window.is_key_pressed(Key::N, minifb::KeyRepeat::No) {
+            current_planet_index = (current_planet_index + 1) % solar_objects.len(); 
+            camera.move_to_next_planet(&solar_objects, current_planet_index);
         }
     
         handle_input(&window, &mut camera);
         framebuffer.clear();
+        framebuffer.set_background_color(0x000000); 
+
+        (&mut framebuffer).draw_stars(15); 
         time += 1;
+        
     
-        // Matrices de vista y proyección
         let view_matrix = create_view_matrix(camera.eye, camera.center, camera.up);
         let projection_matrix = create_perspective_matrix(window_width as f32, window_height as f32);
         let viewport_matrix = create_viewport_matrix(framebuffer_width as f32, framebuffer_height as f32);
     
-        // Renderizamos cada objeto en la lista de solar_objects con órbitas
         for (shader_fn, initial_translation, scale, orbital_speed) in &solar_objects {
-            // Calcular la posición orbital usando la velocidad orbital única
-            let angle = time as f32 * orbital_speed;  // Cada planeta tiene una velocidad única
+            let angle = time as f32 * orbital_speed;  
             let translation = Vec3::new(
                 initial_translation.x * angle.cos() - initial_translation.y * angle.sin(),
                 initial_translation.x * angle.sin() + initial_translation.y * angle.cos(),
                 initial_translation.z,
             );
         
-            let rotation = Vec3::new(0.0, time as f32 * 0.01, 0.0);  // Rotación simple en el eje Y
+            let rotation = Vec3::new(0.0, time as f32 * 0.01, 0.0);  
             let model_matrix = create_model_matrix(translation, *scale, rotation);
         
             let uniforms = Uniforms { 
@@ -241,8 +240,8 @@ fn main() {
         window.update_with_buffer(&framebuffer.buffer, framebuffer_width, framebuffer_height).unwrap();
         std::thread::sleep(frame_delay);
     }
-    
 }
+
 
 
 fn handle_input(window: &Window, camera: &mut Camera) {

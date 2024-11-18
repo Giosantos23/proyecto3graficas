@@ -1,13 +1,9 @@
 
-use nalgebra_glm::{Vec3, Vec4, Mat3, dot, mat4_to_mat3};
+use nalgebra_glm::{Vec3, Vec4, Mat3, mat4_to_mat3};
 use crate::vertex::Vertex;
 use crate::Uniforms;
 use crate::fragment::Fragment;
 use crate::color::Color;
-use std::f32::consts::PI;
-use rand::Rng;
-use rand::SeedableRng;
-use rand::rngs::StdRng;
 
 pub fn vertex_shader(vertex: &Vertex, uniforms: &Uniforms) -> Vertex {
     let position = Vec4::new(
@@ -211,7 +207,6 @@ pub fn gaseoso_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color {
   let base_color = Color::new(128, 0, 0);        
   let band_color = Color::new(255, 204, 153);       
   let storm_color = Color::new(192, 57, 43);        
-  let background_color = Color::new(0, 61, 102);    
   let noise_value = uniforms.noise.get_noise_2d(x * zoom + ox, y * zoom * 0.5 + oy + t);
   let band_intensity = (noise_value * 0.5) + 0.5;
 
@@ -243,8 +238,8 @@ pub fn death_star_shader(fragment: &Fragment, uniforms: &Uniforms) -> Color {
   let circle_color = Color::new(64, 64, 64); 
   let background_color = Color::new(102, 102, 102); 
 
-  let in_vertical_line = ((x / line_spacing).fract().abs() < line_width);
-  let in_horizontal_line = ((y / line_spacing).fract().abs() < line_width);
+  let in_vertical_line = (x / line_spacing).fract().abs() < line_width;
+  let in_horizontal_line = (y / line_spacing).fract().abs() < line_width;
 
   let distance_from_center = ((x - center.x).powi(2) + (y - center.y).powi(2)).sqrt();
   let in_circle = distance_from_center <= circle_radius;

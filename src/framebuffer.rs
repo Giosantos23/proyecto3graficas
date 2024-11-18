@@ -1,3 +1,4 @@
+use rand::Rng;
 
 pub struct Framebuffer {
     pub width: usize,
@@ -46,5 +47,17 @@ impl Framebuffer {
 
     pub fn set_current_color(&mut self, color: u32) {
         self.current_color = color;
+    }
+    pub fn draw_stars(&mut self, num_stars: usize) {
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..num_stars {
+            let x = rng.gen_range(0..self.width);
+            let y = rng.gen_range(0..self.height);
+            let brightness = rng.gen_range(200..256); 
+            let star_color = (brightness << 16) | (brightness << 8) | brightness; 
+
+            self.buffer[y * self.width + x] = star_color;
+        }
     }
 }

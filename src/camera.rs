@@ -1,22 +1,27 @@
 
 use nalgebra_glm::{Vec3, rotate_vec3};
 use std::f32::consts::PI;
+use crate::Fragment;
+use crate::Uniforms;
+use crate::Color;
 
 pub struct Camera {
   pub eye: Vec3,
   pub center: Vec3,
   pub up: Vec3,
-  pub has_changed: bool
+  pub has_changed: bool,
+  pub planet_index: usize, 
 }
 
 impl Camera {
   pub fn new(eye: Vec3, center: Vec3, up: Vec3) -> Self {
-    Camera {
-      eye,
-      center,
-      up,
-      has_changed: true,
-    }
+      Camera {
+          eye,
+          center,
+          up,
+          has_changed: true,
+          planet_index: 0, 
+      }
   }
 
   pub fn basis_change(&self, vector: &Vec3) -> Vec3 {
@@ -64,7 +69,7 @@ impl Camera {
     let radius_vector = self.center - self.eye;
     let radius = radius_vector.magnitude();
 
-    let angle_x = direction.x * 0.05; // Adjust this factor to control rotation speed
+    let angle_x = direction.x * 0.05; 
     let angle_y = direction.y * 0.05;
 
     let rotated = rotate_vec3(&radius_vector, angle_x, &Vec3::new(0.0, 1.0, 0.0));
@@ -82,6 +87,16 @@ impl Camera {
       true
     } else {
       false
+    }
+  }
+pub fn move_to_next_planet(
+    &mut self,
+    solar_objects: &[(Box<dyn Fn(&Fragment, &Uniforms) -> Color>, Vec3, f32, f32)],
+    current_index: usize,
+) {
+    if let Some((_, position, _, _)) = solar_objects.get(current_index) {
+        self.center = *position;
+        self.eye = position + Vec3::new(0.0, 0.0, 5.0); 
     }
   }
 }
